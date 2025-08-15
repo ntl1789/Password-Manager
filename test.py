@@ -8,6 +8,11 @@ hashed = hashlib.sha3_256(message).hexdigest()
 KEY_FILE = "test_key.txt"
 PASSWORD_FILE = "passwords.json"
 
+"""
+hashlib.encode - converts string to byte sequence
+hashlib.decode - converts byte sequence to string
+"""
+
 
 def generate_key():
 #using fernet to create key
@@ -18,34 +23,52 @@ def generate_key():
 
 def load_key():
     return open(KEY_FILE, "rb").read()
+    
 
 def encrypt(password, key):
     #using the generated key to initialise a Fernet cipher
     f = Fernet(key)
-    return f.encrypt(password.encode())
+    return f.encrypt(password.encode()).decode()
 
 
 def decrypt(password, key):
     f = Fernet(key)
-    return f.decrypt(password.decode())
+    bytes_password = password.encode()
+    return f.decrypt(bytes_password).decode()
 
 
 def save_passwords(encrypted_passwords: dict):
     with open(PASSWORD_FILE, "w") as file:
-        json.dump(str(encrypted_passwords), file)
+        json.dump(encrypted_passwords, file)
 
 
 def load_passwords() -> dict:
-    with open(PASSWORD_FILE, "r") as file:
-        passwords_dict = json.load(file)
-    return passwords_dict
+    try: 
+        with open(PASSWORD_FILE, "r") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        with open(PASSWORD_FILE, "a"): pass
+        my_dict = {}
+        return my_dict
+    except json.JSONDecodeError:
+        my_dict = {}
+        return my_dict
 
-def add_password(account, password, key):
-    passwords =load_passwords()
+def add_password(account, username, password, key):
+    #load dict
+    passwords = load_passwords()
+    #encrypt new password 
     encrypted_password = encrypt(password, key)
-    passwords[account] = encrypt.decode()
+    my_dict = {
+                account: {
+                            "username": username,
+                            "password": encrypted_password,
+                        }
+            }
+    passwords.update(my_dict)
     save_passwords(passwords)
     print(f"Password for {account} saved successfully.")
+
 
 logged_in = False
 manager = True
@@ -67,15 +90,7 @@ try:
 except FileNotFoundError:
     key = generate_key()
 
-try:
-    passwords_dict = load_passwords()
-    print(passwords_dict)
-except FileNotFoundError:
-    print("No passwords exist yet. Creating file.")
-    with open(PASSWORD_FILE, "a"): pass
-    passwords_dict = {}
-except json.JSONDecodeError:
-    passwords_dict = {}
+passwords_dict = load_passwords()
 
 while manager:
     option = input("Choose your option [1 - 4]\n"
@@ -85,9 +100,9 @@ while manager:
                     "[4] Exit program" )
     if option == "1":
         #search for username and password for particular account:
-        account = input("What account do you want the details for?")
+        account = input("What account do you want the details for?: ")
 
-        if account in passwords_dict.items():
+        if account in passwords_dict.keys():
             username = passwords_dict[account]["username"]
             encrypted_password = passwords_dict[account]["password"]
             decrypted_password = decrypt(encrypted_password, key)
@@ -100,38 +115,24 @@ while manager:
             new_account = input("What is the name of the account?: ")
             new_username = input("What is your username?: ")
             new_password = input("What is your password?: ")
-            confirm = (f"For {new_account}, your username is: {new_username}, and your password is: {new_password}.\n"
+            confirm = input(f"For {new_account}, your username is: {new_username}, and your password is: {new_password}.\n"
                 "Is this correct? [yes/no]: ").lower()
             if confirm == "yes" or "y": 
                 pass_done = True
             #what if account already in passwords?
+            add_password(new_account, new_username, new_password, key)
+    elif option == "3":
+        #remove password
+        print("to be written")
+    elif option == "4":
+        manager = False
+    else:
+        print("Invalid option entered. Enter a number between 1 - 4: ")
 
-        new_encrypted_password = encrypt(new_password, key)
-
-        new_dict = {new_account: {
-                                        "username": new_username,
-                                        "password": new_encrypted_password
-            }}
-        
-        print(type(passwords_dict))
-        passwords_dict.update(new_dict)
-
-        save_passwords(passwords_dict)
+       
 
 
-template = {
-                'Google': {
-                            'username': 'example@email.com', 
-                            'password': 'rgergr'
-                        }, 
-                'Amazon': {
-                            'username': 'example@email.com', 
-                            'password': 'enfdjkwe'
-                        }
-            }
 
-new_dict = {"username": "blahh", "Password": "test"
-}
 
 
 
